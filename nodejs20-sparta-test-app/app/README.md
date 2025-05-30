@@ -10,6 +10,7 @@
 
 # Launching The App
 - Attempt 1
+- Attempt 2, after changing security rules. 
 
 ## Description
 
