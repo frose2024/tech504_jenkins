@@ -18,6 +18,7 @@
 - Attempt the 7th? 8th maybe?
 - Archiving artifacts from job 2.
 - Mayhaps my paths were a tad incorrect.
+- Root directory????
 
 ## Description
 
