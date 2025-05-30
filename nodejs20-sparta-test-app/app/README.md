@@ -12,6 +12,8 @@
 - Attempt 1
 - Attempt 2, after changing security rules. 
 - Attempt 3, rebooted VM to apply security rules.
+- Adding debug info to console output.
+
 
 ## Description
 
