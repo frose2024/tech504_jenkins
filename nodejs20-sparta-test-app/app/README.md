@@ -15,6 +15,7 @@
 - Adding debug info to console output.
 - Checked IP of jenkins server
 - Relaxed security group rules.
+- Attempt the 7th? 8th maybe?
 
 ## Description
 
