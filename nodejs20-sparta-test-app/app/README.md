@@ -16,6 +16,7 @@
 - Checked IP of jenkins server
 - Relaxed security group rules.
 - Attempt the 7th? 8th maybe?
+- Archiving artifacts from job 2.
 
 ## Description
 
