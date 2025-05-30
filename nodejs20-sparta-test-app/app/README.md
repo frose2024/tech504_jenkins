@@ -14,6 +14,7 @@
 - Attempt 3, rebooted VM to apply security rules.
 - Adding debug info to console output.
 - Checked IP of jenkins server
+- Relaxed security group rules.
 
 ## Description
 
