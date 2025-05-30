@@ -6,6 +6,8 @@
 - Try 3.
 - Try 4.
 - Trying after changing branches around in config file. 
+- Maybe fixing wompwomp?
+
 
 ## Description
 
