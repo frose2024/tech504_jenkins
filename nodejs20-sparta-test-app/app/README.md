@@ -8,6 +8,8 @@
 - Trying after changing branches around in config file. 
 - Maybe fixing wompwomp?
 
+# Launching The App
+- Attempt 1
 
 ## Description
 
