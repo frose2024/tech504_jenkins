@@ -1,10 +1,11 @@
 ## Sparta Node Sample App
 
 # Jenkins Merge Attempts
-Try 1 at just changing the README.
-Try 2.
-Try 3.
-Try 4.
+- Try 1 at just changing the README.
+- Try 2.
+- Try 3.
+- Try 4.
+- Trying after changing branches around in config file. 
 
 ## Description
 
