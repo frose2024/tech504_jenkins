@@ -19,6 +19,7 @@
 - Archiving artifacts from job 2.
 - Mayhaps my paths were a tad incorrect.
 - Root directory????
+- SCP is letting me down.
 
 ## Description
 
