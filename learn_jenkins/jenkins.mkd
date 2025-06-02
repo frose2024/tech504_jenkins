@@ -1,0 +1,243 @@
+# Constructing a CI/CD Pipeline via Jenkins and AWS
+
+- [Constructing a CI/CD Pipeline via Jenkins and AWS](#constructing-a-cicd-pipeline-via-jenkins-and-aws)
+- [Jenkins Job 1](#jenkins-job-1)
+  - [Execution](#execution)
+    - [Deploy Key](#deploy-key)
+    - [Build Configuration](#build-configuration)
+    - [Webhook](#webhook)
+    - [Build Environment and Build Steps](#build-environment-and-build-steps)
+- [Jenkins Job 2](#jenkins-job-2)
+  - [Execution](#execution-1)
+    - [Branches to Build](#branches-to-build)
+    - [Merge before Build](#merge-before-build)
+    - [Build Triggers](#build-triggers)
+    - [SSH Agent](#ssh-agent)
+    - [Build Steps](#build-steps)
+- [Jenkins Job 3](#jenkins-job-3)
+  - [Prerequisites](#prerequisites)
+  - [Execution](#execution-2)
+    - [Source Code](#source-code)
+    - [Build Triggers](#build-triggers-1)
+    - [Build Environment - Secret](#build-environment---secret)
+    - [SSH Agent](#ssh-agent-1)
+    - [Build Steps - Execute Shell](#build-steps---execute-shell)
+  - [Blockers](#blockers)
+    - [Basic Debug Attempt](#basic-debug-attempt)
+    - [SSH Debug pt.1](#ssh-debug-pt1)
+    - [SSH Debug pt.2](#ssh-debug-pt2)
+    - [SCP Failures](#scp-failures)
+    - [Inaccurate Instance Contents](#inaccurate-instance-contents)
+
+-----------------------
+
+# Jenkins Job 1
+Uses a webhook targeted at a specific GitHub repo that is notified whenever new code is pushed to the remote repository. Whenever the hook is triggered the job runs the testing code within the app to confirm that the new code works. 
+
+## Execution
+### Deploy Key
+Created a deploy key pair that could be added to the repo and to Jenkins that would authorise reading/writing to/from the repo. 
+
+-----------------------
+### Build Configuration
+Added the project/repo's URL, minus the git part on the end to the build configuration `https://github.com/frose2024/tech504_jenkins/`
+
+Needed to configure the source code management so that the job would know which branch and which repo it was watching
+  
+![alt text](images/job1sourceCode.png)
+
+-----------------------
+### Webhook
+Set up the webhook on GitHub. The payload of the webhook is directed to the Jenkins server, so whenever the repo gets a new push request the webhook sends that request to the Jenkins server via the webhook.
+
+![alt text](images/job1trigger.png)
+![alt text](images/gitWebhook.png)
+
+-----------------------
+### Build Environment and Build Steps
+Used this option at the end of the Jenkins job to actually run the test. Needed to install Node before this so that it would work.
+- Had to select specifically Node 20 (this was already installed on the server for us) as this is the version of Node that the app runs. 
+
+![alt text](images/job1buildEnvironment.png)
+
+![alt text](images/job1buildSteps.png)
+
+
+
+# Jenkins Job 2
+Assuming job 1 is successful, and only if job 1 is successful, this will merge the new code from the `dev` branch into the `main` branch. 
+
+
+## Execution
+### Branches to Build
+Where you specify which brand this job will be pulling code from, the branch that Jenkins will be 'building' from. 
+
+![alt text](images/job2branch.png)
+
+-----------------------
+### Merge before Build
+This is a Git plug-in that automatically (assuming there aren't any merge conflicts) merges the a specific branch into the branch that you're building before running the build.
+- i.e. Merges the `dev` branch into the `main` branch and then build the project. 
+
+
+Ran into some trouble here when it came to naming the repository. It's not actually referring the repository name (i.e `tech504_jenkins`), but rather the Git remote that you're trying to merge from. 
+- Default name for that is `origin`. 
+
+
+We want Jenkins to build `main` and merge in the latest changes from `dev`, so :
+- Name of repository: `origin`
+- Branch to merge to: `dev`
+
+This means Jenkins will:
+- Fetch from the `origin` remote.
+- Merge `origin/dev` into the `main` branch. 
+- Build the result of that merge. 
+
+![alt text](images/job2merge.png)
+
+-----------------------
+### Build Triggers
+Creates the chain from job 1 to job 2. A successful build of job 1 is required for job 2 to start. 
+
+![alt text](images/job2buildTrigers.png)
+
+-----------------------
+### SSH Agent
+Required to authorise the alterations to the repo. Uses the credentials previously added to GitHub and Jenkins (see [Deploy Key](#deploy-key)). 
+
+![alt text](images/job2sshAgent.png)
+
+-----------------------
+### Build Steps
+This last part is crucial for the changes to actually take place. Without it, Jenkins has merged the changes locally within its own workspace, but it hasn't pushed that merged result back to the remote. 
+
+You need to manually specify that you want this at the end. 
+
+![alt text](images/job2buildSteps.png)
+
+This code pushes the current branch (`HEAD` which is the result of the merge) to the `main` branch of the remote `origin`.
+
+
+**ALTERNATIVE**
+Could have used the `Git Publisher` plugin to achieve what we did with code. 
+
+![alt text](images/gitPublisher.png)
+
+
+# Jenkins Job 3
+
+## Prerequisites
+Installed dependencies for the app first:
+- `sudo apt update -y`
+- `sudo apt upgrade -y`
+- `sudo apt install nginx -y`
+
+Installed the correct version of Node (version 20) next:
+- `sudo bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -"`
+- `sudo apt install nodejs -y`
+
+Then installed `pm2` onto the app instance:
+- `sudo npm install pm2@latest -g`
+
+
+Also needed to add my the private half of the SSH key-pair I've been using for AWS to the Jenkins server. 
+
+Added a security group rule to allow SSH access from the Jenkins server to the EC2 instance.
+- This part has also proven a problem. I wrote a small job to check the actual IP of the Jenkins server we were using, and used the returned value as the target for the security group rule. This did not work however, so I left the target IP for the SSH rule as null. **Not secure**, but unsure of the solution.  
+
+
+Finally, I created an `app` directory on the EC2 instance. 
+- This would turn out to be a grievous mistake. 
+
+
+
+## Execution
+### Source Code
+![alt text](images/job3sourceCode.png)
+Much like Job 1 (see [Build Configuration](#build-configuration)) I used the GitHub repo as the source code for the job. B/c this job's execution is based on Job2 successfully updating the repo and `main` branch this ensures the most recent code is supplied for the app. 
+
+
+### Build Triggers
+![alt text](images/job3buildTriggers.png)
+Hinges this job on the successful completion of the one before. Doesn't require polling. 
+
+
+### Build Environment - Secret 
+![alt text](images/job3buildEnvironment.png)
+Was having trouble with the SSH verification for the SCP command despite using the SSH Agent client in the job. Deduced that needed to include the SSH key here as well in the form of a secret text. 
+
+
+### SSH Agent
+![alt text](images/job3sshAgent.png)
+Contains the private half of the key pair uploaded to the EC2 instance. Jenkins injects this into the SCP command and therefore allows the connection. 
+
+
+### Build Steps - Execute Shell
+![alt text](images/job3executeShell.png)
+
+```
+ssh -o StrictHostKeyChecking=no ubuntu@ec2-34-241-54-152.eu-west-1.compute.amazonaws.com << EOF
+  rm -rf /home/ubuntu/sparta_test_app-main
+  mkdir -p /home/ubuntu/sparta_test_app-main
+```
+This initiates the `ssh` connection between the Jenkins worker node and the EC2 instance that will run the app.
+- Annoying that the EC2 instance IP changes all the time. Maybe there is a plugin?
+  
+```
+scp -o StrictHostKeyChecking=no \
+  $WORKSPACE/nodejs20-sparta-test-app/README.md \
+  ubuntu@ec2-34-241-54-152.eu-west-1.compute.amazonaws.com:/home/ubuntu/sparta_test_app-main
+
+```
+`scp` command copies the 
+
+```
+scp -o StrictHostKeyChecking=no -r \
+  $WORKSPACE/nodejs20-sparta-test-app/app \
+  ubuntu@ec2-34-241-54-152.eu-west-1.compute.amazonaws.com:/home/ubuntu/sparta_test_app-main
+```
+
+```
+ssh -o StrictHostKeyChecking=no ubuntu@ec2-34-241-54-152.eu-west-1.compute.amazonaws.com << 'EOF'
+  echo "Navigating to app directory..."
+  cd /home/ubuntu/sparta_test_app-main/app
+```
+
+```
+sudo apt install nginx -y
+
+echo "Altering nginx config file"
+sudo sed -i.bak 's|try_files \$uri \$uri/ =404;|proxy_pass http://localhost:3000;|' /etc/nginx/sites-available/default
+
+sudo systemctl restart nginx
+  echo "Installing dependencies..."
+  npm install
+```
+
+```
+  echo "Restarting app with PM2..."
+  pm2 restart sparta-test-app || pm2 start app.js --name sparta-test-app
+```
+
+
+## Blockers
+### Basic Debug Attempt
+- Added some echo lines to the shell script on Jenkins to try and determine where it was failing.
+
+
+### SSH Debug pt.1
+- Checked the IP of the Jenkins server using a small `curl` request project. Used this as the basis for the security group rule that was meant to allow SSH access from the Jenkins server to the app instance. **Did not work**. 
+
+
+### SSH Debug pt.2
+- Relaxed the security group rule to allow access from all IPs.
+
+
+### SCP Failures
+- Had a lot of trouble getting SCP to copy the correct files across, it kept ignoring the `json.package` file and any other files not within the app directory. 
+- Solution was to explicity target the desired files with the SCP command.  
+
+
+### Inaccurate Instance Contents
+- Having an app directory already present within the instance, along with the repeated partially failing SCP commands meant the instance's internal directory was getting cluttered.
+- Adding a few lines to the Jenkins shell script to remove all files/directories from previous attempts. Clean slate. 

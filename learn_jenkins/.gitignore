@@ -1,0 +1,56 @@
+# Local .terraform directories
+# Reason to ignore - contains the provider plugins and related metadata (backend configs, module caches)
+#   not necessarily sensative, avoiding bloat
+.terraform/
+
+# .tfstate files
+# SUPER IMPORTANT - terraform keeps a log of what it's been up to. This can include credentials (like your git commit history)
+#   one team will share their state files, but not via github. Carrier pigeon maybe. Blob storage + dynamo db on AWS (requires gold) 
+#   whoever is running the terraform commands (i.e. apply) needs those files to update them  + lock them (only one person altering a file at one time). 
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which are likely to contain sensitive data, such as
+# password, private keys, and other secrets. These should not be part of version 
+# control as they are data points which are potentially sensitive and subject 
+# to change depending on the environment.
+#   can store variable values in here. Not guaranteed to contain super secrets, but it could. Err on the side of caution/paranoia. 
+*.tfvars
+*.tfvars.json
+variable.tf
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore transient lock info files created by terraform apply
+.terraform.tfstate.lock.info
+
+# Include override files you do wish to add to version control using negated pattern
+# !example_override.tf
+
+# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
+# example: *tfplan*
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+
+
+
+# DON'T PUT IN GITIGNORE 
+
+# .terraform.lock.hcl
+#   "after selecting a specific version of each dependency Terraform remembers the decisions it made in a dependency
+#   lock file so that it can (by default) make the same decisions again in future."
+#   One team needs to be using the same dependencies + provider version across a project. Else, there will be problems. 
+#   Doesn't mean you need to be using the exact same provider throughout a project's lifespan, just means you need to move in unison. 
+
